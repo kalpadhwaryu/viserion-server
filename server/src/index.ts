@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
@@ -17,7 +17,8 @@ app.use(bodyParser.json());
 app.use(cors());
 dotenv.config();
 
-app.get("/getAccessToken", async (req: any, res: any) => {
+// Gets Access Token
+app.get("/getAccessToken", async (req: Request, res: Response) => {
   const params =
     "?client_id=" +
     process.env.GITHUB_CLIENT_ID +
@@ -29,6 +30,23 @@ app.get("/getAccessToken", async (req: any, res: any) => {
     method: "POST",
     headers: {
       Accept: "application/json",
+    },
+  })
+    .then((response) => {
+      return response.json();
+    })
+    .then((data) => {
+      res.json(data);
+    });
+});
+
+// Gets User Data
+// Access Token is going to be passed in as an Authorization header
+app.get("/getUserData", async (req: Request, res: Response) => {
+  await fetch("https://api.github.com/user", {
+    method: "GET",
+    headers: {
+      Authorization: req.header("Authorization"),
     },
   })
     .then((response) => {
