@@ -105,6 +105,36 @@ app.post("/jira/getAccessToken", async (req: Request, res: Response) => {
     });
 });
 
+// Get Jira Projects/Dashboards
+app.get("/jira/:entity", async (req: Request, res: Response) => {
+  const entity = req.params.entity;
+  const availableResourceResponse = await fetch(
+    "https://api.atlassian.com/oauth/token/accessible-resources",
+    {
+      method: "GET",
+      headers: {
+        Authorization: req.header("Authorization"),
+      },
+    }
+  );
+  const availableResourceData = await availableResourceResponse.json();
+  const cloudId = availableResourceData[0].id;
+
+  const dataResponse = await fetch(
+    `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/2/${entity}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: req.header("Authorization"),
+      },
+    }
+  );
+
+  const responseData = await dataResponse.json();
+
+  res.json(responseData);
+});
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
