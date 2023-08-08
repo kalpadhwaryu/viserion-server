@@ -17,8 +17,8 @@ app.use(bodyParser.json());
 app.use(cors());
 dotenv.config();
 
-// Gets Access Token
-app.get("/getAccessToken", async (req: Request, res: Response) => {
+// Gets GitHub Access Token
+app.get("github/getAccessToken", async (req: Request, res: Response) => {
   const params =
     "?client_id=" +
     process.env.GITHUB_CLIENT_ID +
@@ -40,21 +40,44 @@ app.get("/getAccessToken", async (req: Request, res: Response) => {
     });
 });
 
-// Gets User Data
+// Gets Users Followers and Repos
 // Access Token is going to be passed in as an Authorization header
-app.get("/getUserData", async (req: Request, res: Response) => {
-  await fetch("https://api.github.com/user", {
-    method: "GET",
-    headers: {
-      Authorization: req.header("Authorization"),
-    },
-  })
-    .then((response) => {
-      return response.json();
-    })
-    .then((data) => {
-      res.json(data);
+app.get("/github/:entity", async (req: Request, res: Response) => {
+  const entity = req.params.entity;
+
+  try {
+    const userResponse = await fetch("https://api.github.com/user", {
+      method: "GET",
+      headers: {
+        Authorization: req.header("Authorization"),
+      },
     });
+
+    const userData = await userResponse.json();
+
+    let dataUrl;
+
+    if (entity === "followers") {
+      dataUrl = userData.followers_url;
+    } else if (entity === "repos") {
+      dataUrl = userData.repos_url;
+    } else {
+      return res.status(400).json({ error: "Invalid entity" });
+    }
+
+    const dataResponse = await fetch(dataUrl, {
+      method: "GET",
+      headers: {
+        Authorization: req.header("Authorization"),
+      },
+    });
+
+    const responseData = await dataResponse.json();
+
+    res.json(responseData);
+  } catch (error) {
+    res.status(500).json({ error: "An error occurred" });
+  }
 });
 
 const PORT = process.env.PORT || 5000;
@@ -62,58 +85,3 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
-
-// Sample hardcoded access tokens for GitHub and Jira
-// const accessTokens: Record<string, string> = {
-//   github: "GITHUB_ACCESS_TOKEN",
-//   jira: "YOUR_JIRA_ACCESS_TOKEN",
-// };
-
-// Middleware for OAuth validation
-// const validateOAuth = (req: Request, res: Response, next: NextFunction) => {
-//   const { integration } = req.params;
-//   const token = accessTokens[integration];
-//   if (!token) {
-//     return res
-//       .status(401)
-//       .json({ message: "Invalid integration or missing access token." });
-//   }
-//   // Assuming the access token is in the Authorization header as 'Bearer YOUR_ACCESS_TOKEN'
-//   const authToken = req.header("Authorization");
-//   if (!authToken || authToken !== `Bearer ${token}`) {
-//     return res.status(403).json({ message: "Invalid access token." });
-//   }
-//   next();
-// };
-
-// Middleware for logging request URLs
-// const logRequest = (req: Request, res: Response, next: NextFunction) => {
-//   console.log(`Request URL: ${req.url}`);
-//   next();
-// };
-
-// Define your API endpoints
-// app.get(
-//   "/list/:integration/:entity",
-//   validateOAuth,
-//   async (req: Request, res: Response) => {
-//     const { integration, entity } = req.params;
-
-//     // Perform API call using fetch (you can use Axios instead if preferred)
-//     try {
-//       // Example API call using Axios
-//       const response = await axios.get(
-//         `https://api.example.com/${integration}/${entity}`,
-//         {
-//           headers: { Authorization: `Bearer ${accessTokens[integration]}` },
-//         }
-//       );
-
-//       // Process the response and send it back
-//       res.json(response.data);
-//     } catch (error) {
-//       console.error("Error while fetching data:", error);
-//       res.status(500).json({ message: "Error while fetching data." });
-//     }
-//   }
-// );
