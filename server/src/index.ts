@@ -80,6 +80,31 @@ app.get("/github/:entity", async (req: Request, res: Response) => {
   }
 });
 
+// Gets Jira's Access Token
+app.post("/jira/getAccessToken", async (req: Request, res: Response) => {
+  const requestBody = {
+    grant_type: "authorization_code",
+    client_id: process.env.JIRA_CLIENT_ID,
+    client_secret: process.env.JIRA_CLIENT_SECRET,
+    code: req.body.code,
+    redirect_uri: "https://localhost:3000/",
+  };
+  await fetch("https://auth.atlassian.com/oauth/token", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  })
+    .then((response) => {
+      return response.json();
+    })
+    .then((data) => {
+      res.json(data);
+    });
+});
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
