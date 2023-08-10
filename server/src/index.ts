@@ -20,6 +20,16 @@ app.use(bodyParser.json());
 app.use(cors());
 dotenv.config();
 
+app.get("/", async (req: Request, res: Response) => {
+  res.writeHead(200, { "Content-Type": "text/html" });
+  res.write(
+    `<html><body><h2>${
+      req.query.code && req.query.state ? "Jira" : "GitHub"
+    } Logged In. This tab can be closed now.</h2></body></html>`
+  );
+  res.end();
+});
+
 // Gets GitHub Access Token
 app.get("/github/getAccessToken", async (req: Request, res: Response) => {
   const params =
@@ -75,7 +85,6 @@ app.get("/github/:entity", async (req: Request, res: Response) => {
     });
     const responseData = await dataResponse.json();
     res.json(responseData);
-
   } catch (error) {
     res.status(500).json({ error: "An error occurred" });
   }
@@ -136,7 +145,6 @@ app.get("/jira/:entity", async (req: Request, res: Response) => {
 
     const responseData = await dataResponse.json();
     res.json(responseData);
-    
   } catch (error) {
     res.status(500).json({ error: "An error occurred" });
   }
