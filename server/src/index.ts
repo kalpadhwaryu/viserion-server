@@ -97,7 +97,7 @@ app.post("/jira/getAccessToken", async (req: Request, res: Response) => {
     client_id: process.env.JIRA_CLIENT_ID,
     client_secret: process.env.JIRA_CLIENT_SECRET,
     code: req.body.code,
-    redirect_uri: "https://localhost:3000/",
+    redirect_uri: "http://localhost:8080/",
   };
   try {
     const response = await fetch("https://auth.atlassian.com/oauth/token", {
@@ -131,7 +131,14 @@ app.get("/jira/:entity", async (req: Request, res: Response) => {
     );
 
     const availableResourceData = await availableResourceResponse.json();
-    const cloudId = availableResourceData[0].id;
+    const usefulResource = availableResourceData.find(
+      (availableResource: { scopes: string[] }) => {
+        availableResource.scopes.includes("read:jira-user") &&
+          availableResource.scopes.includes("read:jira-work");
+        return availableResource;
+      }
+    );
+    const cloudId = usefulResource.id;
 
     const dataResponse = await fetch(
       `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/2/${entity}`,
