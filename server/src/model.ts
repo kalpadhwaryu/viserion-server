@@ -1,7 +1,16 @@
-export interface AccessTokenResponse {
+export interface GitHubAccessTokenResponse {
   access_token: string;
   token_type: string;
   scope: string;
+}
+
+export interface JiraAccessTokenResponse extends GitHubAccessTokenResponse {
+  expires_in: string;
+}
+
+export interface AvailableResource {
+  id: string;
+  scopes: string[];
 }
 
 export interface GitHubResponseData {
@@ -26,3 +35,5 @@ export type Dashboard = Repo;
 export interface DashboardData {
   dashboards: Dashboard[];
 }
+
+export type JiraEntity = Project[] | DashboardData;

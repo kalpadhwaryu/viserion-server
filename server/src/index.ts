@@ -3,7 +3,14 @@ import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import { Response as FetchResponse } from "node-fetch";
-import { AccessTokenResponse, GitHubEntity, GitHubResponseData } from "./model";
+import {
+  AvailableResource,
+  GitHubAccessTokenResponse,
+  GitHubEntity,
+  GitHubResponseData,
+  JiraAccessTokenResponse,
+  JiraEntity,
+} from "./model";
 
 const importDynamic = new Function(
   "modulePath",
@@ -51,7 +58,7 @@ app.get("/github/getAccessToken", async (req: Request, res: Response) => {
         },
       }
     );
-    const data = (await response.json()) as AccessTokenResponse;
+    const data = (await response.json()) as GitHubAccessTokenResponse;
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: "An error occurred" });
@@ -105,15 +112,18 @@ app.post("/jira/getAccessToken", async (req: Request, res: Response) => {
     redirect_uri: "http://localhost:8080/",
   };
   try {
-    const response = await fetch("https://auth.atlassian.com/oauth/token", {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-    const data = await response.json();
+    const response: FetchResponse = await fetch(
+      "https://auth.atlassian.com/oauth/token",
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      }
+    );
+    const data = (await response.json()) as JiraAccessTokenResponse;
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: "An error occurred" });
@@ -125,7 +135,7 @@ app.get("/jira/:entity", async (req: Request, res: Response) => {
   const entity = req.params.entity;
 
   try {
-    const availableResourceResponse = await fetch(
+    const availableResourceResponse: FetchResponse = await fetch(
       "https://api.atlassian.com/oauth/token/accessible-resources",
       {
         method: "GET",
@@ -135,17 +145,17 @@ app.get("/jira/:entity", async (req: Request, res: Response) => {
       }
     );
 
-    const availableResourceData = await availableResourceResponse.json();
-    const usefulResource = availableResourceData.find(
-      (availableResource: { scopes: string[] }) => {
+    const availableResourceData =
+      (await availableResourceResponse.json()) as AvailableResource[];
+    const usefulResource = availableResourceData.find((availableResource) => {
+      return (
         availableResource.scopes.includes("read:jira-user") &&
-          availableResource.scopes.includes("read:jira-work");
-        return availableResource;
-      }
-    );
+        availableResource.scopes.includes("read:jira-work")
+      );
+    })!;
     const cloudId = usefulResource.id;
 
-    const dataResponse = await fetch(
+    const dataResponse: FetchResponse = await fetch(
       `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/2/${entity}`,
       {
         method: "GET",
@@ -155,7 +165,7 @@ app.get("/jira/:entity", async (req: Request, res: Response) => {
       }
     );
 
-    const responseData = await dataResponse.json();
+    const responseData = (await dataResponse.json()) as JiraEntity;
     res.json(responseData);
   } catch (error) {
     res.status(500).json({ error: "An error occurred" });
