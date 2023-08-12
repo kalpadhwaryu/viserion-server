@@ -2,6 +2,8 @@ import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
+import { Response as FetchResponse } from "node-fetch";
+import { AccessTokenResponse, GitHubEntity, GitHubResponseData } from "./model";
 
 const importDynamic = new Function(
   "modulePath",
@@ -40,7 +42,7 @@ app.get("/github/getAccessToken", async (req: Request, res: Response) => {
     "&code=" +
     req.query.code;
   try {
-    const response = await fetch(
+    const response: FetchResponse = await fetch(
       "https://github.com/login/oauth/access_token" + params,
       {
         method: "POST",
@@ -49,7 +51,7 @@ app.get("/github/getAccessToken", async (req: Request, res: Response) => {
         },
       }
     );
-    const data = await response.json();
+    const data = (await response.json()) as AccessTokenResponse;
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: "An error occurred" });
@@ -60,14 +62,17 @@ app.get("/github/getAccessToken", async (req: Request, res: Response) => {
 app.get("/github/:entity", async (req: Request, res: Response) => {
   const entity: string = req.params.entity;
   try {
-    const userResponse = await fetch("https://api.github.com/user", {
-      method: "GET",
-      headers: {
-        Authorization: req.header("Authorization"),
-      },
-    });
+    const userResponse: FetchResponse = await fetch(
+      "https://api.github.com/user",
+      {
+        method: "GET",
+        headers: {
+          Authorization: req.header("Authorization"),
+        },
+      }
+    );
 
-    const userData = await userResponse.json();
+    const userData = (await userResponse.json()) as GitHubResponseData;
     let dataUrl: string;
     if (entity === "followers") {
       dataUrl = userData.followers_url;
@@ -77,13 +82,13 @@ app.get("/github/:entity", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid entity" });
     }
 
-    const dataResponse = await fetch(dataUrl, {
+    const dataResponse: FetchResponse = await fetch(dataUrl, {
       method: "GET",
       headers: {
         Authorization: req.header("Authorization"),
       },
     });
-    const responseData = await dataResponse.json();
+    const responseData = (await dataResponse.json()) as GitHubEntity[];
     res.json(responseData);
   } catch (error) {
     res.status(500).json({ error: "An error occurred" });
